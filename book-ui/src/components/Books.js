@@ -1,4 +1,5 @@
 import React from "react";
+import { getAllBooks, addBook } from "./api";
 
 class Books extends React.Component {
   constructor(props) {
@@ -6,7 +7,7 @@ class Books extends React.Component {
     this.state = {
       allBooks: [],
       singleBook: {
-        name: "",
+        title: "",
         id: 0,
       },
     };
@@ -14,27 +15,34 @@ class Books extends React.Component {
     this.handleChange = this.handleChange.bind(this);
     this.handleAddBook = this.handleAddBook.bind(this);
   }
+
   getAllBooks() {
-    fetch("http://localhost:8080/api/books")
-      .then((res) => res.json()) // <-- Return the promise here
+    getAllBooks()
       .then((result) => {
         this.setState({
           allBooks: result,
         });
       })
-      .catch(console.log);
+      .catch((error) => console.error("Error fetching books:", error));
   }
+
   handleChange(e) {
     this.setState({
       singleBook: {
-        name: e.target.value,
+        title: e.target.value,
       },
     });
   }
-  handleAddBook(){
-    // Logic to call POST method of API
-    
+
+  handleAddBook() {
+    addBook(this.state.singleBook)
+      .then((result) => {
+        this.setState({ singleBook: { title: "", id: 0 } });
+        this.getAllBooks();
+      })
+      .catch((error) => console.error("Error adding Book:", error));
   }
+
   render() {
     return (
       <div className="container">
@@ -56,7 +64,7 @@ class Books extends React.Component {
           </button>
         </span>
 
-        <table className="table table-straped">
+        <table className="table table-striped">
           <thead>
             <tr>
               <th>#</th>
@@ -78,7 +86,7 @@ class Books extends React.Component {
         <div
           className="modal fade"
           id="exampleModal"
-          tabindex="-1"
+          tabIndex="-1"
           aria-labelledby="exampleModalLabel"
           aria-hidden="true"
         >
@@ -103,7 +111,7 @@ class Books extends React.Component {
                   type="text"
                   id="title"
                   name="title"
-                  value={this.state.singleBook.name}
+                  value={this.state.singleBook.title}
                   onChange={this.handleChange}
                 />
               </div>
