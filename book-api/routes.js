@@ -5,8 +5,8 @@ const getBookByIdRouter = require("./routes/getBookById");
 const addNewBookRouter = require("./routes/addNewBook");
 const updateBookRouter = require("./routes/updateBook");
 const deleteBookRouter = require("./routes/deleteBook");
-const logUsersRouter = require("./routes/logUsers");
-const registerUsersRouter = require("./routes/registerUsers");
+const registerUserRouter = require("./routes/registerUser");
+const loginUserRouter = require("./routes/loginUser");
 
 const router = express.Router();
 
@@ -16,7 +16,7 @@ router.use("/", getBookByIdRouter);
 router.use("/", addNewBookRouter);
 router.use("/", updateBookRouter);
 router.use("/", deleteBookRouter);
-router.use("/", registerUsersRouter);
-router.use("/", logUsersRouter);
+router.use("/", registerUserRouter);
+router.use("/", loginUserRouter);
 
 module.exports = router;
