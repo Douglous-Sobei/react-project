@@ -18,15 +18,23 @@ class Books extends React.Component {
       })
       .catch(console.log);
   }
-
   render() {
     return (
-      <div>
-        <button type="button" onClick={this.getAllBooks}>
-          Get All Books
-        </button>
-        <button type="button">Add Book</button>
-        <table>
+      <div className="container">
+        <span className="title-bar">
+          <button
+            className="btn btn-primary"
+            type="button"
+            onClick={this.getAllBooks}
+          >
+            Get All Books
+          </button>
+          <button className="btn btn-info" type="button">
+            Add Book
+          </button>
+        </span>
+
+        <table className="table table-straped">
           <thead>
             <tr>
               <th>#</th>
