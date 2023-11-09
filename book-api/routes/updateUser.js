@@ -1,14 +1,27 @@
 const express = require("express");
-const { Book } = require("../models/bookSchema");
+const { User } = require("../models/userSchema");
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/books/{id}:
+ * components:
+ *   schemas:
+ *     UserUpdateRequest:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: The updated username.
+ */
+
+/**
+ * @swagger
+ * /api/users/{id}:
  *   put:
- *     summary: Update a book in MongoDB
- *     description: This API is used to update an existing book in the MongoDB database.
+ *     summary: Update a user in MongoDB
+ *     description: This API is used to update an existing user in the MongoDB database.
+ *     tags: [Users]
  *     parameters:
  *       - in: path
  *         name: id
@@ -21,16 +34,16 @@ const router = express.Router();
  *        content:
  *          application/json:
  *            schema:
- *              $ref: '#components/schema/Book'
+ *              $ref: '#components/schemas/UserUpdateRequest'
  *     responses:
  *       "200":
- *         description: Book updated successfully
+ *         description: User updated successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#components/schema/Book'
+ *               $ref: '#components/schemas/UserResponse'
  *       "404":
- *         description: Book not found
+ *         description: User not found
  *         content:
  *           application/json:
  *             schema:
@@ -48,23 +61,23 @@ const router = express.Router();
  *                 message:
  *                   type: string
  */
-router.put("/api/books/:id", async (req, res, next) => {
+router.put("/api/users/:id", async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title } = req.body;
+    const { username } = req.body;
 
-    // Find and update the book
-    const updatedBook = await Book.findOneAndUpdate(
+    // Find and update the user
+    const updatedUser = await User.findOneAndUpdate(
       { id: parseInt(id) }, // Use the 'id' field instead of '_id'
-      { title },
+      { username },
       { new: true }
     );
 
-    if (!updatedBook) {
-      return res.status(404).json({ message: "Book not found" });
+    if (!updatedUser) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(updatedBook);
+    res.status(200).json(updatedUser);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong" });

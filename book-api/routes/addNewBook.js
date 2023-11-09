@@ -1,5 +1,5 @@
 const express = require("express");
-const { Book, IdCounter } = require("../models");
+const { Book, IdCounter } = require("../models/bookSchema");
 
 const router = express.Router();
 
@@ -14,15 +14,20 @@ const router = express.Router();
  *        content:
  *          application/json:
  *            schema:
- *              $ref: '#components/schema/Book'
+ *              $ref: '#/components/schemas/Book'
  *     responses:
  *       "201":
  *         description: Book added successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Book'
  */
+
 router.post("/api/books/addBook", async (req, res, next) => {
   try {
     const { title } = req.body;
-    
+
     // Find the highest book ID to generate the next ID
     const highestBook = await Book.findOne().sort({ id: -1 });
     let nextId = 1;

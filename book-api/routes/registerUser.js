@@ -1,20 +1,13 @@
 const express = require("express");
-const { User } = require("../models");
+const { User, UserIdCounter } = require("../models/userSchema");
 const bcrypt = require("bcrypt");
 
 const router = express.Router();
 
 /**
  * @swagger
- * tags:
- *   name: Users
- *   description: User management APIs
- */
-
-/**
- * @swagger
  * components:
- *   schema:
+ *   schemas:
  *     User:
  *       type: object
  *       properties:
@@ -24,12 +17,37 @@ const router = express.Router();
  *         username:
  *           type: string
  *           description: The username of the user.
+ *         email:
+ *           type: string
+ *           description: The email address of the user.
+ *         isAdmin:
+ *           type: boolean
+ *           description: Indicates whether the user has admin privileges.
+ *
+ *     RegisterUserRequest:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *         email:
+ *           type: string
  *         password:
  *           type: string
- *           description: The password of the user.
  *         confirmPassword:
  *           type: string
- *           description: Confirm the password of the user.
+ *         confirmEmail:
+ *           type: string
+ *         isAdmin:
+ *           type: boolean
+ *
+ *     RegisterUserResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           description: A message indicating the registration status.
+ *         user:
+ *           $ref: '#/components/schemas/User'
  */
 
 /**
@@ -37,29 +55,23 @@ const router = express.Router();
  * /api/users/register:
  *   post:
  *     summary: Register a new user
- *     description: This API is used to register a new user.
+ *     description: This API is used to register a new user in the MongoDB database.
  *     tags: [Users]
  *     requestBody:
  *        required: true
  *        content:
  *          application/json:
  *            schema:
- *              $ref: '#components/schema/User'
+ *              $ref: '#/components/schemas/RegisterUserRequest'
  *     responses:
  *       "201":
  *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: The success message.
- *                 user:
- *                   $ref: '#components/schema/User'
+ *               $ref: '#/components/schemas/RegisterUserResponse'
  *       "400":
- *         description: Bad request, missing required fields or passwords do not match
+ *         description: Bad request. Passwords or email addresses do not match.
  *         content:
  *           application/json:
  *             schema:
@@ -67,74 +79,82 @@ const router = express.Router();
  *               properties:
  *                 message:
  *                   type: string
- *                   description: The error message.
- *       "409":
- *         description: Username already exists
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: The error message.
  */
-
 router.post("/api/users/register", async (req, res, next) => {
   try {
-    const { id, username, password, confirmPassword } = req.body;
+    const {
+      username,
+      email,
+      password,
+      confirmPassword,
+      confirmEmail,
+      isAdmin = false, // Set isAdmin to false by default
+    } = req.body;
 
-    // Parse the id to ensure it's a number
-    const parsedId = parseInt(id, 10);
-
-    if (isNaN(parsedId) || !username || !password || !confirmPassword) {
-      res.status(400).json({ message: "Invalid data provided" });
-      return;
+    // Check if password and confirm password match
+    if (password !== confirmPassword || email !== confirmEmail) {
+      return res
+        .status(400)
+        .json({ message: "Passwords or email addresses do not match" });
     }
 
-    if (password !== confirmPassword) {
-      res.status(400).json({ message: "Passwords do not match" });
-      return;
-    }
-
-    // Check if the username already exists
-    const existingUser = await User.findOne({ username });
+    // Check if a user with the provided username or email already exists
+    const existingUser = await User.findOne({
+      $or: [{ username: username }, { email: email }],
+    });
 
     if (existingUser) {
-      res.status(409).json({ message: "Username already exists" });
-      return;
+      return res
+        .status(400)
+        .json({ message: "Username or email already exists" });
     }
 
-    // Find the highest user ID to generate the next ID
-    const highestUser = await User.findOne().sort({ id: -1 });
-    let nextId = parsedId;
-
-    if (highestUser && highestUser.id >= parsedId) {
-      nextId = highestUser.id + 1;
+    // Check if an admin user already exists
+    if (isAdmin) {
+      const adminUser = await User.findOne({ isAdmin: true });
+      if (adminUser) {
+        return res.status(400).json({ message: "Admin user already exists" });
+      }
     }
+
+    // Find the current value of the user ID counter or create one if it doesn't exist
+    let idCounter = await UserIdCounter.findOne({ name: "userCounter" });
+
+    if (!idCounter) {
+      idCounter = await new UserIdCounter({
+        name: "userCounter",
+        value: 1,
+      }).save();
+    }
+
+    const newUserId = idCounter.value;
 
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Create a new user
     const newUser = new User({
-      id: nextId,
+      id: newUserId,
       username,
+      email,
       password: hashedPassword,
+      isAdmin,
     });
+
     const savedUser = await newUser.save();
 
-    const sanitizedUser = savedUser.toObject();
-    delete sanitizedUser.password;
+    // Update the user ID counter value
+    await UserIdCounter.findOneAndUpdate(
+      { name: "userCounter" },
+      { $inc: { value: 1 } }
+    );
 
-    res.status(201).json({
-      message: "User registered successfully",
-      user: sanitizedUser,
-    });
+    res
+      .status(201)
+      .json({ message: "User registered successfully", user: savedUser });
   } catch (error) {
     next(error);
   }
 });
-
 
 module.exports = router;
