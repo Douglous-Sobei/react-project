@@ -1,22 +1,20 @@
-import React from "react";
-import { getAllBooks, addBook } from "./api";
+import React, { Component } from "react";
+import { getAllBooks, addBook, updateBook } from "./api";
 
-class Books extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      allBooks: [],
-      singleBook: {
-        title: "",
-        id: 0,
-      },
-    };
-    this.getAllBooks = this.getAllBooks.bind(this);
-    this.handleChange = this.handleChange.bind(this);
-    this.handleAddBook = this.handleAddBook.bind(this);
+class Books extends Component {
+  state = {
+    allBooks: [],
+    singleBook: {
+      title: "",
+      id: 0,
+    },
+  };
+
+  componentDidMount() {
+    this.getAllBooks();
   }
 
-  getAllBooks() {
+  getAllBooks = () => {
     getAllBooks()
       .then((result) => {
         this.setState({
@@ -24,24 +22,45 @@ class Books extends React.Component {
         });
       })
       .catch((error) => console.error("Error fetching books:", error));
-  }
+  };
 
-  handleChange(e) {
+  handleChange = (e) => {
     this.setState({
       singleBook: {
+        ...this.state.singleBook,
         title: e.target.value,
       },
     });
-  }
+  };
 
-  handleAddBook() {
-    addBook(this.state.singleBook)
-      .then((result) => {
-        this.setState({ singleBook: { title: "", id: 0 } });
-        this.getAllBooks();
-      })
-      .catch((error) => console.error("Error adding Book:", error));
-  }
+  handleAddBook = () => {
+    const { id, title } = this.state.singleBook;
+
+    const onSuccess = () => {
+      this.setState({ singleBook: { title: "", id: 0 } });
+      this.getAllBooks();
+    };
+
+    if (id) {
+      updateBook(id, { title })
+        .then(onSuccess)
+        .catch((error) => console.error("Error updating Book:", error));
+    } else {
+      addBook(this.state.singleBook)
+        .then(onSuccess)
+        .catch((error) => console.error("Error adding Book:", error));
+    }
+  };
+
+  getBook = (bookId) => {
+    const selectedBook = this.state.allBooks.find((book) => book.id === bookId);
+    this.setState({
+      singleBook: {
+        id: selectedBook.id,
+        title: selectedBook.title,
+      },
+    });
+  };
 
   render() {
     return (
@@ -77,7 +96,17 @@ class Books extends React.Component {
               <tr key={book.id}>
                 <td>{book.id}</td>
                 <td>{book.title}</td>
-                <td>Edit Delete</td>
+                <td>
+                  <button
+                    type="button"
+                    className="btn btn-info"
+                    data-toggle="modal"
+                    data-target="#exampleModal"
+                    onClick={() => this.getBook(book.id)}
+                  >
+                    Update
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
